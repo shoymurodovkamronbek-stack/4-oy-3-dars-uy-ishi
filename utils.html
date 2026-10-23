@@ -1,0 +1,46 @@
+// function s(btnValue,page){
+//     if(btnValue == "top_rated"){
+//         window.localStorage.setItem("movie_type","top_rated")
+//         return d(tokenTop,page)
+//       }
+//       else if(btnValue == "popular"){
+//         window.localStorage.setItem("movie_type","popular")
+//         return d(tokenPopular,page)
+//       }
+//       else if(btnValue == "upcoming"){
+//         window.localStorage.setItem("movie_type","upcoming")
+//         return d(tokenUpComing,page)
+//       }
+//       else {
+//         window.localStorage.setItem("movie_type","top_rated")
+//         return d(tokenTop,page)
+//       }
+// }
+
+async function d(tokenApi,page,data) {
+    append.innerHTML = null
+    let API = `https://api.themoviedb.org/3/movie/${tokenApi}?api_key=${API_KEY}`
+    let api = page ? API+"&page=" + page : API
+    
+    tokenApi = await fetch(api)
+    tokenApi =await tokenApi.json()
+
+    if(data ? data.length == 0 : false){
+        alert("Bu so'rov bo'yicha malumot topilmadi")
+    }
+    
+    for (let el of data || tokenApi.results) {
+        append.innerHTML += `
+                <div class="movie">
+                <img src="https://image.tmdb.org/t/p/w500${el.backdrop_path} alt="Fast &amp; Furious Presents: Hobbs &amp; Shaw">
+   
+               <div class="movie-info">
+                   <h3>${el.original_title}</h3>
+                   <span class="orange">${el.vote_average}</span>
+                </div>
+                <span class="date">${el.release_date}</span> 
+                
+            </div>
+        `
+    }
+}
