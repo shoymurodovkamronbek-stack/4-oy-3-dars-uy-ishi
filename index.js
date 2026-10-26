@@ -1,39 +1,163 @@
-// let API_KEY = 'b971c2f0de8767f08d2bb84160ba24b7'
+let API_KEY = 'dcea1fd7b3e65d34387ad6de7ef9cc5e';
 
-let API_KEY = 'dcea1fd7b3e65d34387ad6de7ef9cc5e'
-
-let tokenTop = `https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}`
-let tokenPopular = `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}`
-let tokenUpComing = `https://api.themoviedb.org/3/movie/upcoming?api_key=${API_KEY}`
+let tokenTop = `https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}`;
+let tokenPopular = `https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}`;
+let tokenUpComing = `https://api.themoviedb.org/3/movie/upcoming?api_key=${API_KEY}`;
 
 const append = document.querySelector(".append");
 const btns = document.querySelectorAll(".btns");
+const title = document.querySelector(".title");
+const searchInput = document.querySelector("#search");
 
-async function getTopMovies() {
-    let topMovies = await axios.get(tokenTop);
-    topMovies = topMovies.data.results;
+const minInput = document.querySelector("#min");
+const maxInput = document.querySelector("#max");
+const scoreInput = document.querySelector("#score");
+const filterBtn = document.querySelector(".btn");
 
-    for (const movie of  topMovies) {
-        append.innerHTML =+ `
-        <div class="movie">
-            <img src="https://image.tmdb.org/t/p/w500${movie.backdrop_path}" alt ="Fast &amp">
-        `
+const prevBtn = document.querySelector(".prev");
+const nextBtn = document.querySelector(".next");
+
+// 1. LocalStorage'dan ma'lumotlarni o'qib olish
+let movieType = window.localStorage.getItem("movieType") || "top_rated";
+let page = Number(window.localStorage.getItem("page")) || 1;
+let savedSearch = window.localStorage.getItem("searchText") || "";
+let savedMin = window.localStorage.getItem("minYear") || "";
+let savedMax = window.localStorage.getItem("maxYear") || "";
+let savedScore = window.localStorage.getItem("scoreVal") || "";
+
+// Sahifa yuklanganda elementlarga saqlangan qiymatlarni yozish
+title.textContent = page;
+searchInput.value = savedSearch;
+minInput.value = savedMin;
+maxInput.value = savedMax;
+scoreInput.value = savedScore;
+
+// 2. Kategoriya tugmalari (Top, Popular, Upcoming)
+btns.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        movieType = e.target.value;
+        window.localStorage.setItem("movieType", movieType);
+        
+        page = 1;
+        window.localStorage.setItem("page", page);
+        title.textContent = page;
+        
+        // Qidiruvni tozalash
+        searchInput.value = "";
+        window.localStorage.removeItem("searchText");
+        savedSearch = "";
+
+        getMovies(movieType, page);
+    });
+});
+
+// 3. Kinolarni API orqali olish va chiqarish
+async function getMovies(mType, pageNum, text = "") {
+    let movieUrl = mType === "top_rated" ? tokenTop : mType === "popular" ? tokenPopular : tokenUpComing;
+    try {
+        let response = await axios.get(movieUrl + `&page=${pageNum}`);
+        let movies = response.data.results;
+
+        let query = text || savedSearch;
+        if (query) {
+            movies = movies.filter(movie => movie.original_title.toLowerCase().includes(query.toLowerCase()));
+        }
+
+        renderMovies(movies);
+    } catch (error) {
+        console.error("Xatolik yuz berdi:", error);
     }
 }
 
-btns.forEach(btn=>{
-    btn.addEventListener("click", (e) =>{
-        let movieType = e.target.value
-        window.localStorage.setItem("movieType", movieType)
-        title.textContent = 1
-        getMovies(movieType, 1)
-    })
-})
+// 4. Ekranga chiqarish funksiyasi
+function renderMovies(movies) {
+    append.innerHTML = null;
 
-async function getMovies(movieType, page, text) {
-    let movieUrl = movieType ==  "top_rated" ? tokentop : movieType == "popular" ? tokenPopular : tokenUpComing
-    let topMovies = await axios.get(movieUrl + `&page=${page}`)
-    topMovies = topMovies.data.results
+    if (movies.length === 0) {
+        append.innerHTML = `<p style="color: white; padding: 20px; font-size: 18px;">Kinolar topilmadi.</p>`;
+        return;
+    }
 
-    topMovies = text ? topMovies.filter(movie => movie.original_title )
+    for (const movie of movies) {
+        let backdrop = movie.backdrop_path 
+            ? `https://image.tmdb.org/t/p/w500${movie.backdrop_path}` 
+            : 'https://via.placeholder.com/300x250';
+
+        append.innerHTML += `
+        <div class="movie">
+            <img src="${backdrop}" alt="${movie.original_title}">
+            <div class="movie-info">
+                <h3>${movie.original_title}</h3>
+                <span class="orange">${Math.floor(movie.vote_average || 0)}</span>
+            </div>
+            <span class="date">${movie.release_date || 'Nomaʼlum'}</span>
+        </div>
+        `;
+    }
 }
+
+// 5. Min, Max va Score filtrlash tugmasi
+filterBtn.addEventListener("click", async () => {
+    let minYear = minInput.value ? Number(minInput.value) : null;
+    let maxYear = maxInput.value ? Number(maxInput.value) : null;
+    let scoreVal = scoreInput.value ? Number(scoreInput.value) : null;
+
+    window.localStorage.setItem("minYear", minInput.value);
+    window.localStorage.setItem("maxYear", maxInput.value);
+    window.localStorage.setItem("scoreVal", scoreInput.value);
+
+    let movieUrl = movieType === "top_rated" ? tokenTop : movieType === "popular" ? tokenPopular : tokenUpComing;
+    
+    try {
+        let response = await axios.get(movieUrl + `&page=${page}`);
+        let movies = response.data.results;
+
+        movies = movies.filter(movie => {
+            let releaseYear = movie.release_date ? Number(movie.release_date.split('-')[0]) : 0;
+            let voteAverage = movie.vote_average || 0;
+
+            if (minYear && releaseYear < minYear) return false;
+            if (maxYear && releaseYear > maxYear) return false;
+            if (scoreVal && voteAverage < scoreVal) return false;
+
+            return true;
+        });
+
+        renderMovies(movies);
+    } catch (error) {
+        console.error("Filtrlashda xatolik:", error);
+    }
+});
+
+// 6. Sahifalash (Next - Keyingi sahifa)
+nextBtn.addEventListener("click", () => {
+    page = Number(title.textContent) + 1;
+    window.localStorage.setItem("page", page);
+    title.textContent = page;
+    getMovies(movieType, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// 7. Sahifalash (Prev - Oldingi sahifa)
+prevBtn.addEventListener("click", () => {
+    page = Number(title.textContent) - 1;
+    if (page < 1) {
+        page = 1;
+        return;
+    }
+    window.localStorage.setItem("page", page);
+    title.textContent = page;
+    getMovies(movieType, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// 8. Real vaqtda qidirish (Search input)
+searchInput.addEventListener("input", (e) => {
+    let text = e.target.value;
+    window.localStorage.setItem("searchText", text);
+    savedSearch = text;
+    getMovies(movieType, page, text);
+});
+
+// 9. Dastlabki ishga tushish
+getMovies(movieType, page, savedSearch);
