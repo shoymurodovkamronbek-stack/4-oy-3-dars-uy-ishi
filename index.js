@@ -17,7 +17,6 @@ const filterBtn = document.querySelector(".btn");
 const prevBtn = document.querySelector(".prev");
 const nextBtn = document.querySelector(".next");
 
-// 1. LocalStorage'dan ma'lumotlarni o'qib olish
 let movieType = window.localStorage.getItem("movieType") || "top_rated";
 let page = Number(window.localStorage.getItem("page")) || 1;
 let savedSearch = window.localStorage.getItem("searchText") || "";
@@ -25,14 +24,12 @@ let savedMin = window.localStorage.getItem("minYear") || "";
 let savedMax = window.localStorage.getItem("maxYear") || "";
 let savedScore = window.localStorage.getItem("scoreVal") || "";
 
-// Sahifa yuklanganda elementlarga saqlangan qiymatlarni yozish
 title.textContent = page;
 searchInput.value = savedSearch;
 minInput.value = savedMin;
 maxInput.value = savedMax;
 scoreInput.value = savedScore;
 
-// 2. Kategoriya tugmalari (Top, Popular, Upcoming)
 btns.forEach(btn => {
     btn.addEventListener("click", (e) => {
         movieType = e.target.value;
@@ -42,7 +39,6 @@ btns.forEach(btn => {
         window.localStorage.setItem("page", page);
         title.textContent = page;
         
-        // Qidiruvni tozalash
         searchInput.value = "";
         window.localStorage.removeItem("searchText");
         savedSearch = "";
@@ -51,7 +47,6 @@ btns.forEach(btn => {
     });
 });
 
-// 3. Kinolarni API orqali olish va chiqarish
 async function getMovies(mType, pageNum, text = "") {
     let movieUrl = mType === "top_rated" ? tokenTop : mType === "popular" ? tokenPopular : tokenUpComing;
     try {
@@ -69,7 +64,6 @@ async function getMovies(mType, pageNum, text = "") {
     }
 }
 
-// 4. Ekranga chiqarish funksiyasi
 function renderMovies(movies) {
     append.innerHTML = null;
 
@@ -96,7 +90,6 @@ function renderMovies(movies) {
     }
 }
 
-// 5. Min, Max va Score filtrlash tugmasi
 filterBtn.addEventListener("click", async () => {
     let minYear = minInput.value ? Number(minInput.value) : null;
     let maxYear = maxInput.value ? Number(maxInput.value) : null;
@@ -129,7 +122,6 @@ filterBtn.addEventListener("click", async () => {
     }
 });
 
-// 6. Sahifalash (Next - Keyingi sahifa)
 nextBtn.addEventListener("click", () => {
     page = Number(title.textContent) + 1;
     window.localStorage.setItem("page", page);
@@ -138,7 +130,6 @@ nextBtn.addEventListener("click", () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// 7. Sahifalash (Prev - Oldingi sahifa)
 prevBtn.addEventListener("click", () => {
     page = Number(title.textContent) - 1;
     if (page < 1) {
@@ -151,7 +142,6 @@ prevBtn.addEventListener("click", () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// 8. Real vaqtda qidirish (Search input)
 searchInput.addEventListener("input", (e) => {
     let text = e.target.value;
     window.localStorage.setItem("searchText", text);
@@ -159,5 +149,4 @@ searchInput.addEventListener("input", (e) => {
     getMovies(movieType, page, text);
 });
 
-// 9. Dastlabki ishga tushish
 getMovies(movieType, page, savedSearch);
